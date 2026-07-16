@@ -5,7 +5,7 @@ const config: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "2mb" },
   },
-  serverExternalPackages: ["mongoose", "argon2"],
+  serverExternalPackages: ["mongoose", "argon2", "@resvg/resvg-js", "satori"],
 };
 
 export default config;

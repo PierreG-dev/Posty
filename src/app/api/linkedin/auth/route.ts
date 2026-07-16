@@ -1,12 +1,12 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { env } from "@/modules/shared/env";
+import { OAUTH_STATE_COOKIE } from "@/modules/linkedin/linkedin-api/oauth-cookie";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization";
-export const OAUTH_STATE_COOKIE = "linkedin_oauth_state";
 
 /**
  * Démarre le flow OAuth LinkedIn. Génère un `state` aléatoire posé en cookie

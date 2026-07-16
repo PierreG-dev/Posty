@@ -3,7 +3,7 @@ import { env } from "@/modules/shared/env";
 import { logger } from "@/modules/shared/logger";
 import { PostsApiClient } from "@/modules/linkedin/linkedin-api";
 import { saveLinkedInCredentials } from "@/modules/shared/settings/repo";
-import { OAUTH_STATE_COOKIE } from "@/app/api/linkedin/auth/route";
+import { OAUTH_STATE_COOKIE } from "@/modules/linkedin/linkedin-api/oauth-cookie";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
