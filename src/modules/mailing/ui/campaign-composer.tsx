@@ -164,6 +164,32 @@ export function CampaignComposer({
     );
   }
 
+  const eligibleCandidateIds = React.useMemo(() => {
+    const out: string[] = [];
+    for (const c of candidates) {
+      const d = decisions.get(c.id);
+      if (!d || d.eligible) out.push(c.id);
+    }
+    return out;
+  }, [candidates, decisions]);
+
+  const allEligibleChecked =
+    eligibleCandidateIds.length > 0 &&
+    eligibleCandidateIds.every((id) => selectedTargets.includes(id));
+
+  function toggleAllEligible() {
+    if (allEligibleChecked) {
+      const drop = new Set(eligibleCandidateIds);
+      setSelectedTargets((prev) => prev.filter((id) => !drop.has(id)));
+    } else {
+      setSelectedTargets((prev) => {
+        const merged = new Set(prev);
+        for (const id of eligibleCandidateIds) merged.add(id);
+        return Array.from(merged);
+      });
+    }
+  }
+
   async function requestPreview() {
     if (dirty) {
       setError("Enregistre d'abord avant l'aperçu.");
@@ -289,7 +315,20 @@ export function CampaignComposer({
         </div>
 
         {candidates.length > 0 ? (
-          <div className="max-h-96 overflow-auto border border-border rounded-md divide-y divide-border">
+          <div className="border border-border rounded-md">
+            <div className="flex items-center gap-3 px-3 py-2 text-xs text-fg-muted bg-surface-2/40 border-b border-border">
+              <input
+                type="checkbox"
+                checked={allEligibleChecked}
+                disabled={eligibleCandidateIds.length === 0}
+                onChange={toggleAllEligible}
+                className="w-4 h-4 accent-accent disabled:opacity-30"
+              />
+              <span>
+                Tout cocher les éligibles ({eligibleCandidateIds.length} sur {candidates.length})
+              </span>
+            </div>
+            <div className="max-h-96 overflow-auto divide-y divide-border">
             {candidates.map((c) => {
               const d = decisions.get(c.id);
               const excluded = d ? !d.eligible : false;
@@ -318,6 +357,7 @@ export function CampaignComposer({
                 </div>
               );
             })}
+            </div>
           </div>
         ) : (
           <p className="text-xs text-fg-muted">
