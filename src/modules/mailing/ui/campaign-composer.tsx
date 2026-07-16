@@ -84,8 +84,9 @@ export function CampaignComposer({
   const [savingMsg, setSavingMsg] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Cible loader
-  const [statusFilter, setStatusFilter] = React.useState<"PROSPECT" | "CLIENT">("PROSPECT");
+  // Cible loader — les deux statuts autorisés (§6.4) peuvent être combinés.
+  const [includeProspects, setIncludeProspects] = React.useState(true);
+  const [includeClients, setIncludeClients] = React.useState(false);
   const [candidates, setCandidates] = React.useState<CandidateContact[]>([]);
   const [loadingCandidates, setLoadingCandidates] = React.useState(false);
   const [decisions, setDecisions] = React.useState<Map<string, Decision>>(new Map());
@@ -126,17 +127,32 @@ export function CampaignComposer({
   }
 
   async function loadCandidates() {
+    if (!includeProspects && !includeClients) return;
     setLoadingCandidates(true);
     try {
-      const r = await fetch(`/api/mailing/contacts?status=${statusFilter}&limit=200`);
-      const data = await r.json();
-      const items = (data.contacts ?? []) as CandidateContact[];
-      // Coté client : pré-filtre pour ne pas montrer les PROSPECTS < 3 relances
-      // (l'API audience les rejettera aussi, mais ça allège la liste montrée).
-      const filtered =
-        statusFilter === "PROSPECT" ? items.filter((c) => c.followupCount >= 3) : items;
-      setCandidates(filtered);
-      await refreshDecisions(filtered.map((c) => c.id));
+      const statuses: Array<"PROSPECT" | "CLIENT"> = [];
+      if (includeProspects) statuses.push("PROSPECT");
+      if (includeClients) statuses.push("CLIENT");
+
+      const pages = await Promise.all(
+        statuses.map((s) =>
+          fetch(`/api/mailing/contacts?status=${s}&limit=500`).then((r) => r.json()),
+        ),
+      );
+      const merged: CandidateContact[] = [];
+      const seen = new Set<string>();
+      for (const p of pages) {
+        for (const c of (p.contacts ?? []) as CandidateContact[]) {
+          if (seen.has(c.id)) continue;
+          seen.add(c.id);
+          // Pré-filtre PROSPECT < 3 relances : allège la liste (l'API audience
+          // les rejetterait aussi). Les CLIENTS passent tels quels.
+          if (c.status === "PROSPECT" && c.followupCount < 3) continue;
+          merged.push(c);
+        }
+      }
+      setCandidates(merged);
+      await refreshDecisions(merged.map((c) => c.id));
     } finally {
       setLoadingCandidates(false);
     }
@@ -299,16 +315,30 @@ export function CampaignComposer({
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">2. Cibles</h2>
-          <div className="flex items-center gap-2">
-            <select
-              className="bg-surface-2 border border-border rounded-md px-2 py-1 text-xs"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as "PROSPECT" | "CLIENT")}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-xs">
+              <input
+                type="checkbox"
+                checked={includeProspects}
+                onChange={(e) => setIncludeProspects(e.target.checked)}
+                className="w-3.5 h-3.5 accent-accent"
+              />
+              PROSPECT (followup ≥ 3)
+            </label>
+            <label className="flex items-center gap-1.5 text-xs">
+              <input
+                type="checkbox"
+                checked={includeClients}
+                onChange={(e) => setIncludeClients(e.target.checked)}
+                className="w-3.5 h-3.5 accent-accent"
+              />
+              CLIENT
+            </label>
+            <Button
+              size="sm"
+              onClick={loadCandidates}
+              disabled={loadingCandidates || (!includeProspects && !includeClients)}
             >
-              <option value="PROSPECT">PROSPECT (followup ≥ 3)</option>
-              <option value="CLIENT">CLIENT</option>
-            </select>
-            <Button size="sm" onClick={loadCandidates} disabled={loadingCandidates}>
               {loadingCandidates ? "Chargement…" : "Charger"}
             </Button>
           </div>
