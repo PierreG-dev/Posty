@@ -125,14 +125,26 @@ describe("computeCampaignAudience — règles §6.4", () => {
     expect(d.reason).toBe("hard_bounce");
   });
 
-  it("isAutoHandled=false (kill-switch) → exclu", () => {
+  it("isAutoHandled=false reste ÉLIGIBLE en campagne, mais autoHandledOff=true", () => {
     const d = first(
       computeCampaignAudience({
         contacts: [{ company: company({ isAutoHandled: false }), meta: null }],
         alreadyRecipientIds: already,
       }),
     );
-    expect(d.reason).toBe("kill_switch");
+    expect(d.eligible).toBe(true);
+    expect(d.reason).toBeNull();
+    expect(d.autoHandledOff).toBe(true);
+  });
+
+  it("isAutoHandled=true → autoHandledOff=false (pas de drapeau)", () => {
+    const d = first(
+      computeCampaignAudience({
+        contacts: [{ company: company({ isAutoHandled: true }), meta: null }],
+        alreadyRecipientIds: already,
+      }),
+    );
+    expect(d.autoHandledOff).toBe(false);
   });
 
   it("déjà destinataire de la campagne → exclu", () => {
@@ -145,13 +157,14 @@ describe("computeCampaignAudience — règles §6.4", () => {
     expect(d.reason).toBe("already_received");
   });
 
-  it("kill-switch prime sur already_received (ordre §plan)", () => {
+  it("already_received prime même quand autoHandledOff", () => {
     const d = first(
       computeCampaignAudience({
         contacts: [{ company: company({ id: "x", isAutoHandled: false }), meta: null }],
         alreadyRecipientIds: new Set(["x"]),
       }),
     );
-    expect(d.reason).toBe("kill_switch");
+    expect(d.reason).toBe("already_received");
+    expect(d.autoHandledOff).toBe(true);
   });
 });

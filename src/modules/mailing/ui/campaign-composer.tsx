@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Badge, Button, Card, Checkbox, Field, Input, Textarea } from "@/modules/shared/ui/primitives";
-import { EXCLUSION_LABELS } from "@/modules/mailing/services/campaigns-audience";
+import { EXCLUSION_LABELS, AUTO_HANDLED_OFF_LABEL } from "@/modules/mailing/services/campaigns-audience";
 import type { ExclusionReason } from "@/modules/mailing/domain/campaigns";
 
 // Composer d'une campagne : sujet, corps, blocs, cibles, aperçu, mise en file.
@@ -40,6 +40,7 @@ interface Decision {
   followupCount: number;
   eligible: boolean;
   reason: ExclusionReason | null;
+  autoHandledOff: boolean;
   greetingPreview: string | null;
 }
 
@@ -383,6 +384,8 @@ export function CampaignComposer({
                   </div>
                   {excluded && d?.reason ? (
                     <Badge tone="failed">{EXCLUSION_LABELS[d.reason]}</Badge>
+                  ) : d?.autoHandledOff ? (
+                    <Badge tone="accent">{AUTO_HANDLED_OFF_LABEL}</Badge>
                   ) : null}
                 </div>
               );

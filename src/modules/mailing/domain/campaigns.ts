@@ -68,7 +68,9 @@ export const EXCLUSION_REASONS = [
   "prospect_low_followup", // PROSPECT avec followupCount < 3
   "paused", // company_meta.paused
   "hard_bounce", // company_meta.bounce.kind = 'hard'
-  "kill_switch", // Twenty.isAutoHandled = false
   "already_received", // déjà présent en file ou en log pour cette campagne
+  // Note : isAutoHandled=false n'est PAS une exclusion en campagne (§6.4
+  // révisé). C'est un avertissement affiché — l'humain assume. Le kill-switch
+  // continue de bloquer la séquence auto (voir eligibility-tick).
 ] as const;
 export type ExclusionReason = (typeof EXCLUSION_REASONS)[number];

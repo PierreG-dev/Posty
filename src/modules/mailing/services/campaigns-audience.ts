@@ -14,8 +14,12 @@ import type { ExclusionReason } from "@/modules/mailing/domain/campaigns";
 //   EXCLU AUTOMATIQUEMENT (non contournable) :
 //     - paused
 //     - hard bounce (soft 3+ traité comme hard côté §8.1 : bounce.kind='hard')
-//     - isAutoHandled = false (kill-switch)
 //     - déjà destinataire de cette campagne (queue non-cancelled OU log)
+//   AVERTISSEMENT (cochable mais signalé) :
+//     - isAutoHandled = false (kill-switch séquence auto). Dans une campagne
+//       manuelle, l'humain assume la décision : on affiche le drapeau mais
+//       on autorise la sélection. Le kill-switch continue de bloquer la
+//       séquence auto (voir eligibility-tick).
 
 export interface AudienceInput {
   company: TwentyCompany;
@@ -30,6 +34,9 @@ export interface AudienceDecision {
   followupCount: number;
   eligible: boolean;
   reason: ExclusionReason | null;
+  // Drapeau informatif (non bloquant en campagne) : Twenty.isAutoHandled=false.
+  // L'UI l'affiche pour prévenir l'humain, mais la case reste cochable.
+  autoHandledOff: boolean;
   // Aperçu de la salutation cachée pour l'UI (peut être null si non calculée
   // encore ; la génération se fait à l'enfilement, pas dans l'audit).
   greetingPreview: string | null;
@@ -62,6 +69,7 @@ export function computeCampaignAudience(opts: ComputeAudienceOpts): AudienceDeci
       ...base,
       eligible: reason === null,
       reason,
+      autoHandledOff: company.isAutoHandled === false,
     };
   });
 }
@@ -82,7 +90,6 @@ function decide(
   if (company.status === "PROSPECT" && company.followupCount < 3) {
     return "prospect_low_followup";
   }
-  if (company.isAutoHandled === false) return "kill_switch";
   if (meta?.paused) return "paused";
   if (meta?.bounce?.kind === "hard") return "hard_bounce";
   if (alreadyRecipientIds.has(company.id)) return "already_received";
@@ -95,6 +102,7 @@ export const EXCLUSION_LABELS: Record<ExclusionReason, string> = {
   prospect_low_followup: "PROSPECT avec < 3 relances",
   paused: "En pause (a répondu ou pausé à la main)",
   hard_bounce: "Hard bounce",
-  kill_switch: "isAutoHandled = false",
   already_received: "Déjà destinataire de cette campagne",
 };
+
+export const AUTO_HANDLED_OFF_LABEL = "Auto-handled OFF";
