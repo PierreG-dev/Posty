@@ -1,0 +1,48 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "react/no-unescaped-entities": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/modules/linkedin/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/modules/mailing/*", "@/modules/mailing", "**/modules/mailing/*"],
+                "message": "modules/linkedin ne doit JAMAIS importer modules/mailing. Passe par shared/."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/modules/mailing/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/modules/linkedin/*", "@/modules/linkedin", "**/modules/linkedin/*"],
+                "message": "modules/mailing ne doit JAMAIS importer modules/linkedin. Passe par shared/."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["tests/**/*.{ts,tsx}", "vitest.config.ts"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "ES2022",
+    "outDir": "dist-worker",
+    "rootDir": ".",
+    "jsx": "react-jsx",
+    "incremental": false,
+    "plugins": []
+  },
+  "include": ["worker/**/*.ts", "src/modules/shared/**/*.ts", "src/modules/linkedin/domain/**/*.ts"],
+  "exclude": ["node_modules", "src/app", ".next"]
+}

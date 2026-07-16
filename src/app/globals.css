@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Fond & surfaces */
+  --bg: #0B0F14;
+  --surface: #121820;
+  --surface-2: #1A222D;
+  --border: #1E2833;
+
+  /* Texte */
+  --fg: #E6EDF3;
+  --fg-muted: #8B98A5;
+
+  /* Accent */
+  --accent: #FFB020;
+  --accent-fg: #0B0F14;
+
+  /* Statuts */
+  --draft: #6E7681;
+  --queued: #FFB020;
+  --scheduled: #58A6FF;
+  --published: #3FB950;
+  --failed: #F85149;
+}
+
+html,
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}

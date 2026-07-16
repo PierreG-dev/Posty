@@ -1,0 +1,33 @@
+# Exemple pour lancer les deux services sur la même image, en local ou sur
+# Coolify. Coolify n'utilisera pas ce fichier tel quel : il faut y déclarer
+# deux services pointant sur la même image, avec les CMD ci-dessous.
+#
+# Le service `worker` NE PUBLIE AUCUN PORT.
+
+services:
+  web:
+    build: .
+    image: posty:local
+    env_file: .env
+    environment:
+      TZ: Europe/Paris
+    ports:
+      - "3000:3000"
+    volumes:
+      - assets:/data/assets
+    restart: unless-stopped
+
+  worker:
+    image: posty:local
+    depends_on:
+      - web
+    env_file: .env
+    environment:
+      TZ: Europe/Paris
+    command: ["node", "dist-worker/worker/index.js"]
+    volumes:
+      - assets:/data/assets
+    restart: unless-stopped
+
+volumes:
+  assets:

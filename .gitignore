@@ -1,0 +1,43 @@
+# deps
+node_modules/
+.pnp
+.pnp.js
+
+# next
+.next/
+out/
+
+# worker build
+dist-worker/
+
+# testing
+coverage/
+
+# env & secrets
+.env
+.env.local
+.env.*.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# tsbuild
+*.tsbuildinfo
+
+# assets volume (dev)
+/data/
+
+# spike output — peut contenir des URN/messages détaillés
+/docs/spike-linkedin.json
