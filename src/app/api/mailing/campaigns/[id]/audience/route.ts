@@ -3,7 +3,7 @@ import { z } from "zod";
 import { twentyFromEnv } from "@/modules/mailing/twenty";
 import { listMetaByIds } from "@/modules/mailing/repositories/company-meta-repo";
 import { findCampaignRecipientIds, getCampaign } from "@/modules/mailing/repositories/campaigns-repo";
-import { computeCampaignAudience } from "@/modules/mailing/services/campaigns-audience";
+import { computeCampaignAudience, notFoundDecision } from "@/modules/mailing/services/campaigns-audience";
 import type { TwentyCompany } from "@/modules/mailing/twenty/types";
 
 export const runtime = "nodejs";
@@ -33,22 +33,33 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ error: "Twenty non configuré" }, { status: 503 });
   }
 
+  // Chaque id demandé DOIT ressortir avec une decision — sinon le composer
+  // considère silencieusement l'id éligible (bug historique : un id sans
+  // decision passait dans "Tout cocher les éligibles" puis était rejeté à
+  // l'enfilement). Les getCompany qui échouent produisent une decision
+  // synthétique `not_found`.
   const companies: TwentyCompany[] = [];
+  const notFound = new Set<string>();
   for (const cid of parsed.data.candidateIds) {
     try {
       const c = await twenty.getCompany(cid);
       if (c) companies.push(c);
+      else notFound.add(cid);
     } catch {
-      // ignore, l'entrée n'apparaîtra pas dans le résultat
+      notFound.add(cid);
     }
   }
   const [metas, alreadyIds] = await Promise.all([
     listMetaByIds(companies.map((c) => c.id)),
     findCampaignRecipientIds(id),
   ]);
-  const decisions = computeCampaignAudience({
+  const computed = computeCampaignAudience({
     contacts: companies.map((c) => ({ company: c, meta: metas.get(c.id) ?? null })),
     alreadyRecipientIds: alreadyIds,
   });
+  const decisions = [
+    ...computed,
+    ...Array.from(notFound).map((cid) => notFoundDecision(cid)),
+  ];
   return NextResponse.json({ decisions });
 }

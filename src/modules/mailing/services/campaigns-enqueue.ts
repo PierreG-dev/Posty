@@ -17,6 +17,7 @@ import {
 import type { Campaign } from "@/modules/mailing/domain/campaigns";
 import { getOrCreateGreeting, GREETING_FALLBACK } from "./greeting";
 import { computeCampaignAudience } from "./campaigns-audience";
+import type { ExclusionReason } from "@/modules/mailing/domain/campaigns";
 import { renderCampaignBody } from "./campaigns-render";
 import type { AnthropicClient } from "@/modules/shared/anthropic/client";
 
@@ -42,7 +43,13 @@ export interface EnqueueCampaignResult {
   candidates: number;
   enqueued: number;
   duplicates: number;
-  skipped: { noEmail: number; ineligible: number; errors: number };
+  skipped: {
+    noEmail: number;
+    notFound: number;
+    excluded: number;
+    excludedByReason: Partial<Record<ExclusionReason, number>>;
+    errors: number;
+  };
 }
 
 export type EnqueueCampaignError =
@@ -103,17 +110,24 @@ export async function enqueueCampaign(
   let enqueued = 0;
   let duplicates = 0;
   let noEmail = 0;
-  let ineligible = notFound.length;
+  let excluded = 0;
+  let notFoundCount = notFound.length;
+  const excludedByReason: Partial<Record<ExclusionReason, number>> = {};
   let errors = 0;
 
   for (const decision of audience) {
     if (!decision.eligible) {
-      ineligible++;
+      excluded++;
+      if (decision.reason) {
+        excludedByReason[decision.reason] = (excludedByReason[decision.reason] ?? 0) + 1;
+      }
       continue;
     }
     const company = companies.find((c) => c.id === decision.companyId);
     if (!company) {
-      ineligible++;
+      // Ne devrait pas arriver : `audience` est construit à partir de
+      // `companies`. Traité comme notFound par prudence.
+      notFoundCount++;
       continue;
     }
     const email = company.contactEmail?.primaryEmail ?? null;
@@ -160,7 +174,9 @@ export async function enqueueCampaign(
     enqueued,
     duplicates,
     noEmail,
-    ineligible,
+    notFound: notFoundCount,
+    excluded,
+    excludedByReason,
     errors,
     at: now,
   });
@@ -172,7 +188,9 @@ export async function enqueueCampaign(
     enqueued,
     duplicates,
     noEmail,
-    ineligible,
+    notFound: notFoundCount,
+    excluded,
+    excludedByReason,
     errors,
     total,
   });
@@ -183,7 +201,7 @@ export async function enqueueCampaign(
     candidates: campaign.targetCompanyIds.length,
     enqueued,
     duplicates,
-    skipped: { noEmail, ineligible, errors },
+    skipped: { noEmail, notFound: notFoundCount, excluded, excludedByReason, errors },
   };
 }
 

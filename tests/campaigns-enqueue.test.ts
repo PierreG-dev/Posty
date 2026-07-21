@@ -189,6 +189,28 @@ describe("enqueueCampaign — anti-doublon & threading", () => {
     expect(inserted).toHaveLength(1);
   });
 
+  it("split notFound / excluded / excludedByReason — getCompany null vs decision non-éligible", async () => {
+    currentCampaign.targetCompanyIds = ["c1", "c2", "cGhost", "cPart"];
+    const t = makeTwenty(
+      new Map<string, TwentyCompany>([
+        ["c1", makeCompany("c1")],
+        ["c2", makeCompany("c2")],
+        // cGhost → getCompany renvoie null (id non présent dans la Map)
+        ["cPart", makeCompany("cPart", { status: "PARTENAIRE" })],
+      ]),
+    );
+    const { enqueueCampaign } = await import("@/modules/mailing/services/campaigns-enqueue");
+    const r = await enqueueCampaign(CAMPAIGN_ID, { twenty: t });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.enqueued).toBe(2);
+    expect(r.skipped.notFound).toBe(1);
+    expect(r.skipped.excluded).toBe(1);
+    expect(r.skipped.excludedByReason.partenaire).toBe(1);
+    expect(r.skipped.noEmail).toBe(0);
+    expect(r.skipped.errors).toBe(0);
+  });
+
   it("refuse si status !== draft", async () => {
     currentCampaign.status = "queued";
     currentCampaign.targetCompanyIds = ["c1"];

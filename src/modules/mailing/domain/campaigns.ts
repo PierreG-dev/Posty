@@ -48,12 +48,22 @@ export const EMPTY_STATS: CampaignStats = {
   cancelled: 0,
 };
 
+// Ventilation persistée du résultat de la mise en file. On sépare `notFound`
+// (Twenty n'a pas rendu le contact au moment T) de `excluded` (l'audience a
+// répondu eligible=false) et on garde le détail par motif dans
+// `excludedByReason` — c'est ce qui permet de diagnostiquer un décalage
+// `candidates` vs `enqueued` sans devoir replonger dans les logs.
+// `ineligible` est conservé pour rétrocompat : rapports pré-migration où
+// notFound + excluded étaient additionnés en un seul compteur.
 export const campaignEnqueueReportSchema = z.object({
   candidates: z.number().int().nonnegative(),
   enqueued: z.number().int().nonnegative(),
   duplicates: z.number().int().nonnegative(),
   noEmail: z.number().int().nonnegative(),
-  ineligible: z.number().int().nonnegative(),
+  notFound: z.number().int().nonnegative().optional(),
+  excluded: z.number().int().nonnegative().optional(),
+  excludedByReason: z.record(z.string(), z.number().int().nonnegative()).optional(),
+  ineligible: z.number().int().nonnegative().optional(),
   errors: z.number().int().nonnegative(),
   at: z.date(),
 });
@@ -81,6 +91,10 @@ export const EXCLUSION_REASONS = [
   "paused", // company_meta.paused
   "hard_bounce", // company_meta.bounce.kind = 'hard'
   "already_received", // déjà présent en file ou en log pour cette campagne
+  "not_found", // getCompany a échoué (null 404 ou throw) — l'id n'est plus
+  //             adressable dans Twenty. Verrouille la case dans l'UI au lieu
+  //             de laisser cocher un contact qui sera silencieusement rejeté
+  //             à l'enfilement.
   // Note : isAutoHandled=false n'est PAS une exclusion en campagne (§6.4
   // révisé). C'est un avertissement affiché — l'humain assume. Le kill-switch
   // continue de bloquer la séquence auto (voir eligibility-tick).

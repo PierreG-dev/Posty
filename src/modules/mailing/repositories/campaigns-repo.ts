@@ -39,7 +39,13 @@ function toDomain(doc: CampaignMongoDoc): Campaign {
           enqueued: doc.enqueueReport.enqueued,
           duplicates: doc.enqueueReport.duplicates,
           noEmail: doc.enqueueReport.noEmail,
-          ineligible: doc.enqueueReport.ineligible,
+          notFound: doc.enqueueReport.notFound ?? undefined,
+          excluded: doc.enqueueReport.excluded ?? undefined,
+          excludedByReason:
+            doc.enqueueReport.excludedByReason && typeof doc.enqueueReport.excludedByReason === "object"
+              ? (doc.enqueueReport.excludedByReason as Record<string, number>)
+              : undefined,
+          ineligible: doc.enqueueReport.ineligible ?? undefined,
           errors: doc.enqueueReport.errors,
           at: doc.enqueueReport.at,
         }

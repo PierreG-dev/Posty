@@ -24,11 +24,17 @@ const enqueueReportSchema = new Schema(
     enqueued: { type: Number, required: true },
     duplicates: { type: Number, required: true },
     noEmail: { type: Number, required: true },
-    ineligible: { type: Number, required: true },
+    // Nouveau split (v2). notFound = getCompany échoué ; excluded = audience
+    // eligible=false ; excludedByReason = détail par motif. ineligible reste
+    // en lecture pour les rapports antérieurs.
+    notFound: { type: Number, default: 0 },
+    excluded: { type: Number, default: 0 },
+    excludedByReason: { type: Schema.Types.Mixed, default: {} },
+    ineligible: { type: Number, default: null },
     errors: { type: Number, required: true },
     at: { type: Date, required: true },
   },
-  { _id: false },
+  { _id: false, suppressReservedKeysWarning: true },
 );
 
 const campaignSchema = new Schema(

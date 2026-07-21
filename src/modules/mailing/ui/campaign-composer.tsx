@@ -100,7 +100,9 @@ export function CampaignComposer({
     enqueued: number;
     duplicates: number;
     noEmail: number;
-    ineligible: number;
+    notFound: number;
+    excluded: number;
+    excludedByReason: Record<string, number>;
     errors: number;
   } | null>(null);
 
@@ -193,7 +195,10 @@ export function CampaignComposer({
     const out: string[] = [];
     for (const c of candidates) {
       const d = decisions.get(c.id);
-      if (!d || d.eligible) out.push(c.id);
+      // Pas de decision = on ne sait pas → considéré non-éligible. L'audience
+      // API garantit désormais une decision par id demandé ; ce garde-fou
+      // couvre les cas de fetch en erreur côté composer.
+      if (d?.eligible) out.push(c.id);
     }
     return out;
   }, [candidates, decisions]);
@@ -265,7 +270,9 @@ export function CampaignComposer({
         enqueued: data.enqueued ?? 0,
         duplicates: data.duplicates ?? 0,
         noEmail: data.skipped?.noEmail ?? 0,
-        ineligible: data.skipped?.ineligible ?? 0,
+        notFound: data.skipped?.notFound ?? 0,
+        excluded: data.skipped?.excluded ?? 0,
+        excludedByReason: data.skipped?.excludedByReason ?? {},
         errors: data.skipped?.errors ?? 0,
       });
       // Refresh sans redirection : l'utilisateur voit le rapport et navigue
@@ -311,7 +318,13 @@ export function CampaignComposer({
               <li>· {enqueueReport.enqueued} nouvelle(s) entrée(s)</li>
               <li>· {enqueueReport.duplicates} déjà en file (dédupliqué(s))</li>
               <li>· {enqueueReport.noEmail} sans email primaire</li>
-              <li>· {enqueueReport.ineligible} inéligible(s) au moment du serveur (introuvables Twenty, paused, bounce, already_received…)</li>
+              <li>· {enqueueReport.notFound} introuvable(s) côté Twenty</li>
+              <li>· {enqueueReport.excluded} exclu(s) par l'audience :</li>
+              {Object.entries(enqueueReport.excludedByReason).map(([reason, n]) => (
+                <li key={reason} className="pl-4">
+                  — {n} {EXCLUSION_LABELS[reason as keyof typeof EXCLUSION_LABELS] ?? reason}
+                </li>
+              ))}
               <li>· {enqueueReport.errors} erreur(s) technique(s)</li>
             </ul>
             <div className="pt-2">
@@ -411,7 +424,9 @@ export function CampaignComposer({
             <div className="max-h-96 overflow-auto divide-y divide-border">
             {candidates.map((c) => {
               const d = decisions.get(c.id);
-              const excluded = d ? !d.eligible : false;
+              // Cohérent avec `eligibleCandidateIds` : sans decision, on
+              // considère exclu (impossible de vérifier).
+              const excluded = d ? !d.eligible : true;
               const checked = selectedTargets.includes(c.id);
               return (
                 <div
@@ -433,6 +448,8 @@ export function CampaignComposer({
                   </div>
                   {excluded && d?.reason ? (
                     <Badge tone="failed">{EXCLUSION_LABELS[d.reason]}</Badge>
+                  ) : excluded && !d ? (
+                    <Badge tone="failed">Décision indisponible — recharge</Badge>
                   ) : !c.contactEmail?.primaryEmail ? (
                     <Badge tone="failed">Sans email — rejeté à l'enfilement</Badge>
                   ) : d?.autoHandledOff ? (

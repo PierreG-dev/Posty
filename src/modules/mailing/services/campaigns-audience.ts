@@ -103,6 +103,27 @@ export const EXCLUSION_LABELS: Record<ExclusionReason, string> = {
   paused: "En pause (a répondu ou pausé à la main)",
   hard_bounce: "Hard bounce",
   already_received: "Déjà destinataire de cette campagne",
+  not_found: "Introuvable côté Twenty",
 };
 
 export const AUTO_HANDLED_OFF_LABEL = "Auto-handled OFF";
+
+/**
+ * Decision synthétique pour un id dont `getCompany` a renvoyé null ou throw.
+ * L'audience API produit une telle decision par candidateId manquant, pour que
+ * l'UI puisse verrouiller la case au lieu de la laisser cocher (et rejeter
+ * silencieusement à l'enfilement).
+ */
+export function notFoundDecision(companyId: string): AudienceDecision {
+  return {
+    companyId,
+    name: "(introuvable)",
+    email: null,
+    status: null,
+    followupCount: 0,
+    eligible: false,
+    reason: "not_found",
+    autoHandledOff: false,
+    greetingPreview: null,
+  };
+}

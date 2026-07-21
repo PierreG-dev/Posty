@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Alert, Badge, Button, Card } from "@/modules/shared/ui/primitives";
 import type { CampaignStatus, CampaignStats } from "@/modules/mailing/domain/campaigns";
+import { EXCLUSION_LABELS } from "@/modules/mailing/services/campaigns-audience";
+import type { ExclusionReason } from "@/modules/mailing/domain/campaigns";
 
 interface Props {
   campaign: {
@@ -21,7 +23,10 @@ interface Props {
       enqueued: number;
       duplicates: number;
       noEmail: number;
-      ineligible: number;
+      notFound?: number;
+      excluded?: number;
+      excludedByReason?: Record<string, number>;
+      ineligible?: number;
       errors: number;
       at: string;
     } | null;
@@ -131,7 +136,24 @@ export function CampaignTracker({ campaign }: Props) {
             <li>· <span className="text-fg">{campaign.enqueueReport.enqueued}</span> nouvelle(s) entrée(s)</li>
             <li>· <span className="text-fg">{campaign.enqueueReport.duplicates}</span> déjà en file (dédupliqué(s))</li>
             <li>· <span className="text-fg">{campaign.enqueueReport.noEmail}</span> sans email primaire</li>
-            <li>· <span className="text-fg">{campaign.enqueueReport.ineligible}</span> inéligible(s) au serveur (introuvable Twenty, paused, hard bounce, already_received…)</li>
+            {typeof campaign.enqueueReport.notFound === "number" ? (
+              <li>· <span className="text-fg">{campaign.enqueueReport.notFound}</span> introuvable(s) côté Twenty (getCompany null ou erreur réseau)</li>
+            ) : null}
+            {typeof campaign.enqueueReport.excluded === "number" ? (
+              <>
+                <li>· <span className="text-fg">{campaign.enqueueReport.excluded}</span> exclu(s) par l'audience :</li>
+                {campaign.enqueueReport.excludedByReason
+                  ? Object.entries(campaign.enqueueReport.excludedByReason).map(([reason, n]) => (
+                      <li key={reason} className="pl-4">
+                        — <span className="text-fg">{n}</span>{" "}
+                        {EXCLUSION_LABELS[reason as ExclusionReason] ?? reason}
+                      </li>
+                    ))
+                  : null}
+              </>
+            ) : typeof campaign.enqueueReport.ineligible === "number" ? (
+              <li>· <span className="text-fg">{campaign.enqueueReport.ineligible}</span> inéligible(s) au serveur (rapport ancien — pas de ventilation par motif)</li>
+            ) : null}
             <li>· <span className="text-fg">{campaign.enqueueReport.errors}</span> erreur(s) technique(s)</li>
           </ul>
         </Card>
