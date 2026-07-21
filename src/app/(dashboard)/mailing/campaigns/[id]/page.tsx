@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getCampaign, refreshCampaignStats } from "@/modules/mailing/repositories/campaigns-repo";
-import { listBlocks } from "@/modules/mailing/repositories/mail-blocks-repo";
+import { listBlocks, listBlocksByIds } from "@/modules/mailing/repositories/mail-blocks-repo";
 import { getMailSettings } from "@/modules/mailing/repositories/mail-settings-repo";
 import { CampaignComposer } from "@/modules/mailing/ui/campaign-composer";
 import { CampaignTracker } from "@/modules/mailing/ui/campaign-tracker";
@@ -40,12 +40,15 @@ export default async function CampaignDetailPage({
   // Non-draft : rafraîchit les stats et affiche le tracker.
   await refreshCampaignStats(id);
   const fresh = (await getCampaign(id))!;
+  const usedBlocks = await listBlocksByIds(fresh.blockIds);
   return (
     <CampaignTracker
       campaign={{
         _id: fresh._id,
         name: fresh.name,
         subject: fresh.subject,
+        body: fresh.body,
+        blocks: usedBlocks.map((b) => ({ _id: b._id, name: b.name, kind: b.kind, content: b.content })),
         status: fresh.status,
         stats: fresh.stats,
         queuedAt: fresh.queuedAt?.toISOString() ?? null,

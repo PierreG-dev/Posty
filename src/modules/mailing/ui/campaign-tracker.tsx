@@ -13,6 +13,8 @@ interface Props {
     _id: string;
     name: string;
     subject: string;
+    body: string;
+    blocks: Array<{ _id: string; name: string; kind: string; content: string }>;
     status: CampaignStatus;
     stats: CampaignStats;
     queuedAt: string | null;
@@ -158,6 +160,42 @@ export function CampaignTracker({ campaign }: Props) {
           </ul>
         </Card>
       ) : null}
+
+      <Card className="p-5 space-y-4">
+        <h2 className="text-sm font-semibold">Contenu envoyé</h2>
+        <div className="text-xs text-fg-muted">
+          Lecture seule — la campagne est figée à la mise en file.
+        </div>
+        <div>
+          <div className="text-xs font-mono uppercase tracking-wider text-fg-muted mb-1">Sujet</div>
+          <div className="text-sm">{campaign.subject}</div>
+        </div>
+        <div>
+          <div className="text-xs font-mono uppercase tracking-wider text-fg-muted mb-1">Corps</div>
+          <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed border border-border rounded-md p-3 bg-surface-2/40">
+            {campaign.body}
+          </pre>
+        </div>
+        {campaign.blocks.length > 0 ? (
+          <div>
+            <div className="text-xs font-mono uppercase tracking-wider text-fg-muted mb-1">
+              Blocs joints ({campaign.blocks.length})
+            </div>
+            <div className="space-y-2">
+              {campaign.blocks.map((b) => (
+                <div key={b._id} className="border border-border rounded-md p-3 bg-surface-2/40">
+                  <div className="text-xs font-mono text-fg-muted mb-2">
+                    {b.name} <span className="opacity-60">({b.kind})</span>
+                  </div>
+                  <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed">
+                    {b.content}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </Card>
 
       <Card className="p-5 space-y-2 text-sm text-fg-muted">
         <div>Cibles sélectionnées : <span className="font-mono">{campaign.targetCount}</span></div>
