@@ -16,6 +16,15 @@ interface Props {
     queuedAt: string | null;
     completedAt: string | null;
     targetCount: number;
+    enqueueReport: {
+      candidates: number;
+      enqueued: number;
+      duplicates: number;
+      noEmail: number;
+      ineligible: number;
+      errors: number;
+      at: string;
+    } | null;
   };
 }
 
@@ -111,6 +120,22 @@ export function CampaignTracker({ campaign }: Props) {
           <StatCell label="Échecs" value={stats.failed} tone={stats.failed > 0 ? "failed" : undefined} />
         </div>
       </Card>
+
+      {campaign.enqueueReport ? (
+        <Card className="p-5 space-y-2 text-sm">
+          <h2 className="text-sm font-semibold">Rapport de mise en file</h2>
+          <div className="text-xs text-fg-muted">
+            Le {new Date(campaign.enqueueReport.at).toLocaleString("fr-FR")} — sélection {campaign.enqueueReport.candidates}, présent en file {campaign.enqueueReport.enqueued + campaign.enqueueReport.duplicates}.
+          </div>
+          <ul className="text-xs font-mono space-y-0.5 text-fg-muted">
+            <li>· <span className="text-fg">{campaign.enqueueReport.enqueued}</span> nouvelle(s) entrée(s)</li>
+            <li>· <span className="text-fg">{campaign.enqueueReport.duplicates}</span> déjà en file (dédupliqué(s))</li>
+            <li>· <span className="text-fg">{campaign.enqueueReport.noEmail}</span> sans email primaire</li>
+            <li>· <span className="text-fg">{campaign.enqueueReport.ineligible}</span> inéligible(s) au serveur (introuvable Twenty, paused, hard bounce, already_received…)</li>
+            <li>· <span className="text-fg">{campaign.enqueueReport.errors}</span> erreur(s) technique(s)</li>
+          </ul>
+        </Card>
+      ) : null}
 
       <Card className="p-5 space-y-2 text-sm text-fg-muted">
         <div>Cibles sélectionnées : <span className="font-mono">{campaign.targetCount}</span></div>

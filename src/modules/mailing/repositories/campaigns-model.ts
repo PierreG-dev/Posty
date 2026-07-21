@@ -15,6 +15,22 @@ const statsSchema = new Schema(
   { _id: false },
 );
 
+// Rapport figé au moment de la mise en file. Utile pour diagnostiquer un écart
+// entre `targetCompanyIds.length` et `stats.total` sans devoir aller dans les
+// logs. Champ optionnel : les campagnes créées avant cet ajout n'en ont pas.
+const enqueueReportSchema = new Schema(
+  {
+    candidates: { type: Number, required: true },
+    enqueued: { type: Number, required: true },
+    duplicates: { type: Number, required: true },
+    noEmail: { type: Number, required: true },
+    ineligible: { type: Number, required: true },
+    errors: { type: Number, required: true },
+    at: { type: Date, required: true },
+  },
+  { _id: false },
+);
+
 const campaignSchema = new Schema(
   {
     name: { type: String, required: true },
@@ -24,6 +40,7 @@ const campaignSchema = new Schema(
     targetCompanyIds: { type: [String], default: [] },
     status: { type: String, enum: CAMPAIGN_STATUSES, default: "draft", index: true },
     stats: { type: statsSchema, default: () => ({}) },
+    enqueueReport: { type: enqueueReportSchema, default: null },
     queuedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
   },

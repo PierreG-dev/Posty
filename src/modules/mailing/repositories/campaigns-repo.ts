@@ -7,6 +7,7 @@ import {
   type CampaignInput,
   type CampaignStats,
   type CampaignStatus,
+  type CampaignEnqueueReport,
 } from "@/modules/mailing/domain/campaigns";
 import { CampaignModel, type CampaignMongoDoc } from "./campaigns-model";
 import { MailQueueModel } from "./mail-queue-model";
@@ -32,7 +33,27 @@ function toDomain(doc: CampaignMongoDoc): Campaign {
     updatedAt: doc.updatedAt,
     queuedAt: doc.queuedAt ?? null,
     completedAt: doc.completedAt ?? null,
+    enqueueReport: doc.enqueueReport
+      ? {
+          candidates: doc.enqueueReport.candidates,
+          enqueued: doc.enqueueReport.enqueued,
+          duplicates: doc.enqueueReport.duplicates,
+          noEmail: doc.enqueueReport.noEmail,
+          ineligible: doc.enqueueReport.ineligible,
+          errors: doc.enqueueReport.errors,
+          at: doc.enqueueReport.at,
+        }
+      : null,
   };
+}
+
+export async function setCampaignEnqueueReport(
+  id: string,
+  report: CampaignEnqueueReport,
+): Promise<void> {
+  await connectDb();
+  if (!Types.ObjectId.isValid(id)) return;
+  await CampaignModel.updateOne({ _id: id }, { $set: { enqueueReport: report } });
 }
 
 export async function listCampaigns(): Promise<Campaign[]> {

@@ -51,6 +51,17 @@ export default async function CampaignDetailPage({
         queuedAt: fresh.queuedAt?.toISOString() ?? null,
         completedAt: fresh.completedAt?.toISOString() ?? null,
         targetCount: fresh.targetCompanyIds.length,
+        enqueueReport: fresh.enqueueReport
+          ? {
+              candidates: fresh.enqueueReport.candidates,
+              enqueued: fresh.enqueueReport.enqueued,
+              duplicates: fresh.enqueueReport.duplicates,
+              noEmail: fresh.enqueueReport.noEmail,
+              ineligible: fresh.enqueueReport.ineligible,
+              errors: fresh.enqueueReport.errors,
+              at: fresh.enqueueReport.at.toISOString(),
+            }
+          : null,
       }}
     />
   );

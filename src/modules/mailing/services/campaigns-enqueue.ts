@@ -11,6 +11,7 @@ import {
   findCampaignRecipientIds,
   getCampaign,
   refreshCampaignStats,
+  setCampaignEnqueueReport,
   setCampaignStatus,
 } from "@/modules/mailing/repositories/campaigns-repo";
 import type { Campaign } from "@/modules/mailing/domain/campaigns";
@@ -152,8 +153,16 @@ export async function enqueueCampaign(
   }
 
   const total = enqueued + duplicates; // ce qui est effectivement en file (nouveau + déjà présent)
-  await setCampaignStatus(campaignId, "queued", {
-    queuedAt: new Date(),
+  const now = new Date();
+  await setCampaignStatus(campaignId, "queued", { queuedAt: now });
+  await setCampaignEnqueueReport(campaignId, {
+    candidates: campaign.targetCompanyIds.length,
+    enqueued,
+    duplicates,
+    noEmail,
+    ineligible,
+    errors,
+    at: now,
   });
   await refreshCampaignStats(campaignId);
 

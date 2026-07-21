@@ -95,6 +95,14 @@ export function CampaignComposer({
   const [previews, setPreviews] = React.useState<Preview[] | null>(null);
   const [loadingPreview, setLoadingPreview] = React.useState(false);
   const [enqueueing, setEnqueueing] = React.useState(false);
+  const [enqueueReport, setEnqueueReport] = React.useState<{
+    candidates: number;
+    enqueued: number;
+    duplicates: number;
+    noEmail: number;
+    ineligible: number;
+    errors: number;
+  } | null>(null);
 
   const dirty =
     name !== campaign.name ||
@@ -242,6 +250,7 @@ export function CampaignComposer({
       return;
     setEnqueueing(true);
     setError(null);
+    setEnqueueReport(null);
     try {
       const r = await fetch(`/api/mailing/campaigns/${campaign._id}/enqueue`, {
         method: "POST",
@@ -251,7 +260,16 @@ export function CampaignComposer({
         setError(`Mise en file refusée : ${data.error ?? r.status}`);
         return;
       }
-      router.push(`/mailing/campaigns/${campaign._id}`);
+      setEnqueueReport({
+        candidates: data.candidates ?? 0,
+        enqueued: data.enqueued ?? 0,
+        duplicates: data.duplicates ?? 0,
+        noEmail: data.skipped?.noEmail ?? 0,
+        ineligible: data.skipped?.ineligible ?? 0,
+        errors: data.skipped?.errors ?? 0,
+      });
+      // Refresh sans redirection : l'utilisateur voit le rapport et navigue
+      // via le lien "Voir la campagne" affiché dans l'alerte.
       router.refresh();
     } finally {
       setEnqueueing(false);
@@ -267,12 +285,43 @@ export function CampaignComposer({
     return n;
   }, [selectedTargets, decisions]);
 
+  const noEmailInSelection = React.useMemo(() => {
+    let n = 0;
+    for (const id of selectedTargets) {
+      const d = decisions.get(id);
+      if (d?.eligible && !d.email) n++;
+    }
+    return n;
+  }, [selectedTargets, decisions]);
+
   const excludedInSelection = selectedTargets.length - eligibleCount;
-  const endEstimate = estimateEnd(eligibleCount, settingsHint);
+  const sendableCount = eligibleCount - noEmailInSelection;
+  const endEstimate = estimateEnd(sendableCount, settingsHint);
 
   return (
     <div className="p-8 space-y-6 max-w-5xl">
       {error ? <Alert tone="danger">{error}</Alert> : null}
+      {enqueueReport ? (
+        <Alert tone="info">
+          <div className="space-y-1">
+            <div className="font-semibold">
+              Campagne mise en file — {enqueueReport.enqueued + enqueueReport.duplicates} entrée(s) présente(s) sur {enqueueReport.candidates} sélectionnée(s).
+            </div>
+            <ul className="text-xs font-mono space-y-0.5">
+              <li>· {enqueueReport.enqueued} nouvelle(s) entrée(s)</li>
+              <li>· {enqueueReport.duplicates} déjà en file (dédupliqué(s))</li>
+              <li>· {enqueueReport.noEmail} sans email primaire</li>
+              <li>· {enqueueReport.ineligible} inéligible(s) au moment du serveur (introuvables Twenty, paused, bounce, already_received…)</li>
+              <li>· {enqueueReport.errors} erreur(s) technique(s)</li>
+            </ul>
+            <div className="pt-2">
+              <a href={`/mailing/campaigns/${campaign._id}`} className="text-accent hover:underline">
+                Voir la campagne →
+              </a>
+            </div>
+          </div>
+        </Alert>
+      ) : null}
 
       {/* 1. Composition */}
       <Card className="p-5 space-y-4">
@@ -384,6 +433,8 @@ export function CampaignComposer({
                   </div>
                   {excluded && d?.reason ? (
                     <Badge tone="failed">{EXCLUSION_LABELS[d.reason]}</Badge>
+                  ) : !c.contactEmail?.primaryEmail ? (
+                    <Badge tone="failed">Sans email — rejeté à l'enfilement</Badge>
                   ) : d?.autoHandledOff ? (
                     <Badge tone="accent">{AUTO_HANDLED_OFF_LABEL}</Badge>
                   ) : null}
@@ -402,7 +453,13 @@ export function CampaignComposer({
 
         <div className="text-sm text-fg-muted">
           <span className="font-mono">{selectedTargets.length}</span> sélectionné(s) ·{" "}
-          <span className="font-mono text-published">{eligibleCount}</span> éligible(s)
+          <span className="font-mono text-published">{sendableCount}</span> envoyable(s)
+          {noEmailInSelection > 0 ? (
+            <>
+              {" "}·{" "}
+              <span className="font-mono text-failed">{noEmailInSelection}</span> sans email
+            </>
+          ) : null}
           {excludedInSelection > 0 ? (
             <>
               {" "}·{" "}
@@ -426,21 +483,21 @@ export function CampaignComposer({
           <Button
             variant="primary"
             onClick={doEnqueue}
-            disabled={enqueueing || eligibleCount === 0}
+            disabled={enqueueing || sendableCount === 0}
           >
-            {enqueueing ? "Enfilement…" : `Mettre en file (${eligibleCount})`}
+            {enqueueing ? "Enfilement…" : `Mettre en file (${sendableCount})`}
           </Button>
           {savingMsg ? <span className="text-xs text-fg-muted">{savingMsg}</span> : null}
         </div>
 
         <div className="text-xs text-fg-muted font-mono">
-          {eligibleCount > 0 ? (
+          {sendableCount > 0 ? (
             <>
-              {eligibleCount} contacts · ~{settingsHint.dailyCap} par créneau max ·
+              {sendableCount} contacts · ~{settingsHint.dailyCap} par créneau max ·
               fin estimée {endEstimate ?? "—"}
             </>
           ) : (
-            "Sélectionne des cibles éligibles pour estimer la durée."
+            "Sélectionne des cibles envoyables pour estimer la durée."
           )}
         </div>
 

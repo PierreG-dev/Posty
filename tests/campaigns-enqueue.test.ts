@@ -80,6 +80,7 @@ vi.mock("@/modules/mailing/repositories/campaigns-repo", () => ({
   getCampaign: vi.fn(async () => currentCampaign),
   findCampaignRecipientIds: vi.fn(async () => alreadyIds),
   setCampaignStatus: vi.fn(async () => currentCampaign),
+  setCampaignEnqueueReport: vi.fn(async () => {}),
   refreshCampaignStats: vi.fn(async () => currentCampaign.stats),
 }));
 

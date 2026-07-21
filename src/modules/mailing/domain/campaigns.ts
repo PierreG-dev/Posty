@@ -48,10 +48,22 @@ export const EMPTY_STATS: CampaignStats = {
   cancelled: 0,
 };
 
+export const campaignEnqueueReportSchema = z.object({
+  candidates: z.number().int().nonnegative(),
+  enqueued: z.number().int().nonnegative(),
+  duplicates: z.number().int().nonnegative(),
+  noEmail: z.number().int().nonnegative(),
+  ineligible: z.number().int().nonnegative(),
+  errors: z.number().int().nonnegative(),
+  at: z.date(),
+});
+export type CampaignEnqueueReport = z.infer<typeof campaignEnqueueReportSchema>;
+
 export const campaignSchema = campaignInputSchema.extend({
   _id: z.string(),
   status: z.enum(CAMPAIGN_STATUSES),
   stats: campaignStatsSchema,
+  enqueueReport: campaignEnqueueReportSchema.nullable(),
   createdAt: z.date(),
   updatedAt: z.date(),
   queuedAt: z.date().nullable(),
