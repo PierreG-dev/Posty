@@ -98,4 +98,79 @@ describe("HttpTwentyClient", () => {
     const r = await c.getCompany("nope");
     expect(r).toBeNull();
   });
+
+  it("getCompany retry sur 429 puis réussit — backoff court en test", async () => {
+    let n = 0;
+    const raw = {
+      id: "co_x",
+      name: "X",
+      status: "PROSPECT",
+      isAutoHandled: true,
+      toContact: false,
+      followupCount: 3,
+      lastContactedAt: null,
+      nextFollowupAt: null,
+      lastMessageId: null,
+      messageReferences: null,
+      contactEmail: { primaryEmail: "x@x.co" },
+    };
+    const { fetch: f, calls } = makeFetch(() => {
+      n++;
+      if (n === 1) return new Response("rate limit", { status: 429 });
+      return new Response(JSON.stringify({ data: { company: raw } }), { status: 200 });
+    });
+    const c = new HttpTwentyClient({
+      baseUrl: "https://crm.example.com",
+      token: "T",
+      fetchImpl: f,
+      backoffBaseMs: 0,
+    });
+    const r = await c.getCompany("co_x");
+    expect(r?.id).toBe("co_x");
+    expect(calls).toHaveLength(2);
+  });
+
+  it("getCompany retry sur throw réseau puis réussit", async () => {
+    let n = 0;
+    const raw = {
+      id: "co_y",
+      name: "Y",
+      status: "PROSPECT",
+      isAutoHandled: true,
+      toContact: false,
+      followupCount: 3,
+      lastContactedAt: null,
+      nextFollowupAt: null,
+      lastMessageId: null,
+      messageReferences: null,
+      contactEmail: { primaryEmail: "y@y.co" },
+    };
+    const { fetch: f, calls } = makeFetch(() => {
+      n++;
+      if (n === 1) throw new Error("ECONNRESET");
+      return new Response(JSON.stringify({ data: { company: raw } }), { status: 200 });
+    });
+    const c = new HttpTwentyClient({
+      baseUrl: "https://crm.example.com",
+      token: "T",
+      fetchImpl: f,
+      backoffBaseMs: 0,
+    });
+    const r = await c.getCompany("co_y");
+    expect(r?.id).toBe("co_y");
+    expect(calls).toHaveLength(2);
+  });
+
+  it("getCompany n'ajoute PAS de retry sur 404 (final)", async () => {
+    const { fetch: f, calls } = makeFetch(() => new Response("", { status: 404 }));
+    const c = new HttpTwentyClient({
+      baseUrl: "https://crm.example.com",
+      token: "T",
+      fetchImpl: f,
+      backoffBaseMs: 0,
+    });
+    const r = await c.getCompany("nope");
+    expect(r).toBeNull();
+    expect(calls).toHaveLength(1);
+  });
 });

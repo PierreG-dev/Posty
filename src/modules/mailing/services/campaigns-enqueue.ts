@@ -81,11 +81,16 @@ export async function enqueueCampaign(
   //    l'enfilement.
   const companies: TwentyCompany[] = [];
   const notFound: string[] = [];
+  let notFoundNull = 0;
+  let notFoundThrow = 0;
   for (const id of campaign.targetCompanyIds) {
     try {
       const c = await twenty.getCompany(id);
       if (c) companies.push(c);
-      else notFound.push(id);
+      else {
+        notFound.push(id);
+        notFoundNull++;
+      }
     } catch (err) {
       logger.warn("mailing.campaign.twenty_fetch_failed", {
         campaignId,
@@ -93,7 +98,16 @@ export async function enqueueCampaign(
         error: err instanceof Error ? err.message : String(err),
       });
       notFound.push(id);
+      notFoundThrow++;
     }
+  }
+  if (notFound.length > 0) {
+    logger.warn("mailing.campaign.get_company_missing", {
+      campaignId,
+      totalMissing: notFound.length,
+      nullReturn: notFoundNull,
+      thrown: notFoundThrow,
+    });
   }
 
   const [metas, alreadyIds, blocks] = await Promise.all([
