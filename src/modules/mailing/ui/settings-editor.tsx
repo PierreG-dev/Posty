@@ -160,6 +160,12 @@ export function SettingsEditor({ initialSettings, twentyConfigured }: Props) {
           <Field label="Dossier d'archivage">
             <Input value={s.imap.archiveFolder} onChange={(e) => setS({ ...s, imap: { ...s.imap, archiveFolder: e.target.value } })} />
           </Field>
+          <Field label="Dossier INBOX">
+            <Input value={s.imap.inboxFolder} onChange={(e) => setS({ ...s, imap: { ...s.imap, inboxFolder: e.target.value } })} />
+          </Field>
+          <Field label="Dossier spam">
+            <Input value={s.imap.spamFolder} onChange={(e) => setS({ ...s, imap: { ...s.imap, spamFolder: e.target.value } })} />
+          </Field>
         </div>
       </Card>
 
