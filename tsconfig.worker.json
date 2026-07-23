@@ -11,6 +11,11 @@
     "incremental": false,
     "plugins": []
   },
-  "include": ["worker/**/*.ts", "src/modules/shared/**/*.ts", "src/modules/linkedin/domain/**/*.ts"],
+  "include": [
+    "worker/**/*.ts",
+    "src/modules/shared/**/*.ts",
+    "src/modules/linkedin/domain/**/*.ts",
+    "scripts/mailing-force-send.ts"
+  ],
   "exclude": ["node_modules", "src/app", ".next"]
 }

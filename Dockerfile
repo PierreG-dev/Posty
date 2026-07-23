@@ -1,6 +1,7 @@
 # =============================================================================
-# Posty — image unique servant les deux services (web et worker).
-# Coolify orchestrera deux services sur cette même image, avec des CMD distincts.
+# Posty — image unique servant web ET worker dans un seul container.
+# L'entrypoint lance le worker en background (restart-loop) et next start
+# au premier plan. Ça évite d'avoir à maintenir deux apps Coolify.
 # =============================================================================
 
 # --- deps --------------------------------------------------------------------
@@ -34,6 +35,8 @@ COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/dist-worker ./dist-worker
 COPY --from=build /app/next.config.ts ./next.config.ts
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 RUN addgroup -g 1001 -S nodejs && adduser -S posty -u 1001 -G nodejs
 RUN mkdir -p /data/assets && chown -R posty:nodejs /data /app
@@ -41,4 +44,4 @@ USER posty
 
 EXPOSE 3000
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["npx", "next", "start", "-p", "3000"]
+CMD ["/app/docker-entrypoint.sh"]
