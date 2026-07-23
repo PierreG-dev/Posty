@@ -9,12 +9,16 @@
 
 set -e
 
-(
-  while true; do
-    node dist-worker/worker/index.js || true
-    echo "{\"ts\":\"$(date -u +%FT%TZ)\",\"level\":\"warn\",\"msg\":\"worker.exited_restarting\"}" >&2
-    sleep 2
-  done
-) &
+if [ -f dist-worker/worker/index.js ]; then
+  (
+    while true; do
+      node dist-worker/worker/index.js || true
+      echo "{\"ts\":\"$(date -u +%FT%TZ)\",\"level\":\"warn\",\"msg\":\"worker.exited_restarting\"}" >&2
+      sleep 2
+    done
+  ) &
+else
+  echo "{\"ts\":\"$(date -u +%FT%TZ)\",\"level\":\"warn\",\"msg\":\"worker.skipped_no_build\"}" >&2
+fi
 
 exec npx next start -p 3000

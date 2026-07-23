@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "sh ./docker-entrypoint.sh",
     "worker": "tsx --env-file=.env worker/index.ts",
     "worker:build": "tsc -p tsconfig.worker.json && tsc-alias -p tsconfig.worker.json",
     "worker:start": "node dist-worker/worker/index.js",
