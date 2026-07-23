@@ -62,7 +62,9 @@ export async function createImapflowClient(settings: MailSettings): Promise<Imap
 
   return {
     async ensureFolder(name: string): Promise<void> {
-      const exists = await client.mailboxExists(name);
+      // imapflow n'a pas de mailboxExists() — on liste et on cherche le path.
+      const mailboxes = await client.list();
+      const exists = mailboxes.some((m) => m.path === name);
       if (!exists) {
         await client.mailboxCreate(name);
         logger.info("mailing.imap.folder_created", { folder: name });
@@ -107,7 +109,7 @@ export async function createImapflowClient(settings: MailSettings): Promise<Imap
 interface ImapFlowInstance {
   connect(): Promise<void>;
   logout(): Promise<void>;
-  mailboxExists(name: string): Promise<boolean>;
+  list(): Promise<Array<{ path: string }>>;
   mailboxCreate(name: string): Promise<void>;
   mailbox: { uidValidity?: number | bigint } | undefined;
   getMailboxLock(name: string): Promise<{ release(): void }>;
