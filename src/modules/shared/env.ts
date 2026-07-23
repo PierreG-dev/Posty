@@ -36,6 +36,10 @@ const schema = z.object({
   // pour ne pas bloquer le démarrage tant que la config n'existe pas.
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_SECURE: z
+    .enum(["true", "false"])
+    .transform((v) => v === "true")
+    .optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().email().optional(),

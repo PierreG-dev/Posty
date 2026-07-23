@@ -1,4 +1,5 @@
 import { connectDb } from "@/modules/shared/db/mongoose";
+import { env } from "@/modules/shared/env";
 import {
   mailSettingsInputSchema,
   type MailSettings,
@@ -56,9 +57,42 @@ function toDomain(doc: MailSettingsDoc): MailSettings {
 export async function getMailSettings(): Promise<MailSettings> {
   await connectDb();
   const existing = await MailSettingsModel.findById(MAIL_SETTINGS_ID).lean<MailSettingsDoc>();
-  if (existing) return toDomain(existing);
-  const created = await MailSettingsModel.create({ _id: MAIL_SETTINGS_ID });
-  return toDomain(created.toObject() as MailSettingsDoc);
+  const settings = existing
+    ? toDomain(existing)
+    : toDomain((await MailSettingsModel.create({ _id: MAIL_SETTINGS_ID })).toObject() as MailSettingsDoc);
+  return applyEnvFallbacks(settings);
+}
+
+// Mongo est autoritaire ; le .env sert de valeur de repli quand un champ
+// SMTP/IMAP est resté vide en base. Ça permet de bootstrapper la config
+// depuis le .env sans passer par /mailing/settings, tout en laissant
+// n'importe quelle valeur saisie dans l'UI reprendre la main.
+// N'est appliqué qu'à la lecture (getMailSettings), jamais à l'écriture,
+// pour ne pas persister les valeurs env dans Mongo.
+function applyEnvFallbacks(settings: MailSettings): MailSettings {
+  const e = env();
+  return {
+    ...settings,
+    smtp: {
+      host: settings.smtp.host || e.SMTP_HOST || "",
+      port: settings.smtp.port || e.SMTP_PORT || 587,
+      // Booléen : "vide" = false (défaut du schéma Mongo). Si l'env dit true
+      // et que Mongo est resté au défaut, env gagne — même logique que port.
+      secure: settings.smtp.secure || e.SMTP_SECURE || false,
+      user: settings.smtp.user || e.SMTP_USER || "",
+      pass: settings.smtp.pass || e.SMTP_PASS || "",
+      from: settings.smtp.from || e.SMTP_FROM || "",
+    },
+    imap: {
+      host: settings.imap.host || e.IMAP_HOST || "",
+      port: settings.imap.port || e.IMAP_PORT || 993,
+      user: settings.imap.user || e.IMAP_USER || "",
+      pass: settings.imap.pass || e.IMAP_PASS || "",
+      archiveFolder: settings.imap.archiveFolder || e.IMAP_ARCHIVE_FOLDER,
+      inboxFolder: settings.imap.inboxFolder,
+      spamFolder: settings.imap.spamFolder,
+    },
+  };
 }
 
 export async function updateMailSettings(patch: Partial<MailSettingsInput>): Promise<MailSettings> {
